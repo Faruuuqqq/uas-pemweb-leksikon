@@ -1,0 +1,77 @@
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f8f9fa;
+}
+
+/* Z-index fix untuk navbar & search */
+.navbar {
+    position: relative;
+    z-index: 1001;
+}
+
+/* Kustomisasi tombol favorit */
+.favorite-btn {
+    transition: color 0.2s, transform 0.2s;
+}
+.favorite-btn:hover {
+    transform: scale(1.2);
+    color: #fd7e14;
+}
+
+.card {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.card-header {
+    background-color: #f1f3f5;
+    border-bottom: none;
+    font-weight: 500;
+}
+
+/* TAMPILAN SEARCH INPUT */
+#search-input {
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+#search-input:focus {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-color: #0d6efd; 
+}
+
+/* Hasil search AJAX */
+#search-results-container {
+    border-radius: 0.5rem;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    border: 1px solid #dee2e6;
+}
+#search-results-container .list-group-item {
+    border-bottom: 1px solid #f0f0f0 !important;
+}
+#search-results-container .list-group-item:last-child {
+    border-bottom: none !important;
+}
+
+.page-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+    opacity: 0;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.list-group-item-action {
+    transition: all 0.2s ease-out;
+}
+.list-group-item-action:hover {
+    transform: translateX(5px);
+}
