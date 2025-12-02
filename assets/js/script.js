@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- PENCARIAN INSTAN ---
     const searchInput = document.getElementById("search-input");
     const resultsContainer = document.getElementById("search-results-container");
-    const mainList = document.getElementById("main-entry-list");
+    const mainList = document.getElementById("main-entry-list"); // Used for hiding/showing main list
 
     if (searchInput) {
         searchInput.addEventListener("keyup", async (e) => {
@@ -18,8 +18,8 @@ document.addEventListener("DOMContentLoaded", () => {
             if (mainList) mainList.style.display = "none";
             
             try {
-                // Langsung fetch tanpa delay
-                const response = await fetch(`controllers/search.php?q=${query}`);
+                // Adjust URL for CodeIgniter's Leksikon::search() method
+                const response = await fetch(`${CI_SITE_URL}leksikon/search?q=${query}`);
                 const results = await response.json();
 
                 resultsContainer.innerHTML = ""; // Kosongkan
@@ -27,14 +27,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (results.length > 0 && !results.error) {
                     results.forEach(item => {
                         resultsContainer.innerHTML += `
-                            <a href="detail.php?id=${item.id}" class="list-group-item list-group-item-action">
+                            <a href="${CI_SITE_URL}leksikon/detail/${item.id}" class="list-group-item list-group-item-action">
                                 <strong>${item.term}</strong><br>
                                 <small class="text-muted">${item.definition.substring(0, 75)}...</small>
                             </a>
                         `;
                     });
                 } else {
-                    // Pesan sederhana jika tidak ditemukan
                     resultsContainer.innerHTML = `<span class="list-group-item text-center p-3">Tidak ada hasil ditemukan.</span>`;
                 }
             } catch (err) {
@@ -43,99 +42,84 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        // Sembunyikan hasil jika klik di luar (opsional, tapi ini cukup simpel)
+        // Sembunyikan hasil jika klik di luar
         document.addEventListener('click', (e) => {
-            if (e.target.id !== 'search-input') {
+            if (e.target.id !== 'search-input' && !searchInput.contains(e.target)) {
                 resultsContainer.innerHTML = '';
                 if (mainList) mainList.style.display = "block";
             }
         });
     }
 
-    // --- SISTEM FAVORIT (COOKIE) ---
-    
-    const setCookie = (name, value, days = 30) => {
-        let expires = "";
-        if (days) {
-            const date = new Date();
-            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-            expires = "; expires=" + date.toUTCString();
-        }
-        document.cookie = name + "=" + (JSON.stringify(value) || "") + expires + "; path=/; SameSite=Lax";
-    };
+    // --- SISTEM FAVORIT (SERVER-SIDE) ---
 
-    const getCookie = (name) => {
-        const nameEQ = name + "=";
-        const ca = document.cookie.split(';');
-        for (let i = 0; i < ca.length; i++) {
-            let c = ca[i];
-            while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-            if (c.indexOf(nameEQ) === 0) {
-                try {
-                    return JSON.parse(c.substring(nameEQ.length, c.length));
-                } catch (e) {
-                    return [];
+    // Function to handle toggling favorite status via AJAX
+    const toggleFavoriteServerSide = async (entriId, favoriteBtnElement) => {
+        try {
+            const response = await fetch(`${CI_SITE_URL}leksikon/toggle_favorite/${entriId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest', // Important for CI4's isAJAX()
+                    [CI_CSRF_HEADER]: CI_CSRF_TOKEN // Send CSRF token in header
+                },
+                body: JSON.stringify({}) // Empty body might be needed for POST
+            });
+            const result = await response.json();
+
+            if (result.status === 'success') {
+                if (result.action === 'added') {
+                    favoriteBtnElement.classList.remove('bi-star');
+                    favoriteBtnElement.classList.add('bi-star-fill', 'text-warning');
+                    favoriteBtnElement.setAttribute('title', 'Hapus dari Favorit');
+                } else {
+                    favoriteBtnElement.classList.remove('bi-star-fill', 'text-warning');
+                    favoriteBtnElement.classList.add('bi-star');
+                    favoriteBtnElement.setAttribute('title', 'Tambah ke Favorit');
+                }
+                // Optional: show a toast/alert message
+                console.log(result.message);
+                loadFavoritesListServerSide(); // Reload sidebar favorites
+            } else {
+                alert(result.message); // Show error message (e.g., "Anda harus login")
+                if (result.message.includes('login')) { // Simple check for login requirement
+                    window.location.href = `${CI_SITE_URL}login`;
                 }
             }
+        } catch (error) {
+            console.error("Error toggling favorite:", error);
+            alert("Gagal mengubah status favorit. Silakan coba lagi.");
         }
-        return [];
     };
 
-    const toggleFavorite = (id) => {
-        let favorites = getCookie("favorites");
-        if (!Array.isArray(favorites)) favorites = [];
-        const idStr = String(id);
-        if (favorites.includes(idStr)) {
-            favorites = favorites.filter(fId => fId !== idStr); // Hapus
-        } else {
-            favorites.push(idStr); // Tambah
-        }
-        setCookie("favorites", favorites);
-    };
-
-    // Fungsi untuk update ikon bintang
-    const updateFavoriteIcons = () => {
-        const favorites = getCookie("favorites");
-        if (!Array.isArray(favorites)) return;
-        
-        document.querySelectorAll('.favorite-btn').forEach(btn => {
-            const id = btn.dataset.id;
-            if (favorites.includes(id)) {
-                btn.classList.remove('bi-star');
-                btn.classList.add('bi-star-fill', 'text-warning');
-            } else {
-                btn.classList.remove('bi-star-fill', 'text-warning');
-                btn.classList.add('bi-star');
-            }
-        });
-    };
-
-    // Fungsi untuk memuat daftar favorit di sidebar
-    const loadFavoritesList = async () => {
+    // Function to load and display server-side favorites in the sidebar
+    const loadFavoritesListServerSide = async () => {
         const listEl = document.getElementById("favorites-list");
         if (!listEl) return;
         
-        const favorites = getCookie("favorites");
-        if (!Array.isArray(favorites) || favorites.length === 0) {
-            listEl.innerHTML = `<li class="list-group-item text-muted small">Belum ada favorit.</li>`;
-            return;
-        }
-
+        // No need to pass IDs, server will get user ID from session
         try {
-            const response = await fetch(`controllers/get_favorites.php?ids=${JSON.stringify(favorites)}`);
-            const items = await response.json();
+            const response = await fetch(`${CI_SITE_URL}leksikon/get_favorites`);
+            const result = await response.json();
 
-            if (items.length > 0) {
-                listEl.innerHTML = "";
-                items.forEach(item => {
-                    listEl.innerHTML += `
-                        <a href="detail.php?id=${item.id}" class="list-group-item list-group-item-action py-2">
-                            ${item.term}
-                        </a>
-                    `;
-                });
+            if (result.status === 'success') {
+                const items = result.data; // Server now returns data within 'data' key
+
+                listEl.innerHTML = ""; // Clear existing list
+
+                if (items.length > 0) {
+                    items.forEach(item => {
+                        listEl.innerHTML += `
+                            <a href="${CI_SITE_URL}leksikon/detail/${item.id}" class="list-group-item list-group-item-action py-2">
+                                ${item.term}
+                            </a>
+                        `;
+                    });
+                } else {
+                    listEl.innerHTML = `<li class="list-group-item text-muted small">Belum ada favorit.</li>`;
+                }
             } else {
-                listEl.innerHTML = `<li class="list-group-item text-muted small">Belum ada favorit.</li>`;
+                 listEl.innerHTML = `<li class="list-group-item text-danger small">${result.message}</li>`;
             }
         } catch (e) {
             console.error("Gagal memuat favorit:", e);
@@ -143,17 +127,19 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    // Event listener untuk tombol favorit
+    // Event listener for favorite buttons (both detail and list pages)
     document.body.addEventListener('click', (e) => {
-        if (e.target.classList.contains('favorite-btn')) {
+        // Target buttons with either 'favorite-btn' (detail page) or 'favorite-btn-list' (index page)
+        if (e.target.classList.contains('favorite-btn') || e.target.classList.contains('favorite-btn-list')) {
+            e.preventDefault(); // Prevent default link behavior if applicable
             const id = e.target.dataset.id;
-            toggleFavorite(id);
-            updateFavoriteIcons();
-            loadFavoritesList();
+            if (id) {
+                toggleFavoriteServerSide(id, e.target);
+            }
         }
     });
 
-    updateFavoriteIcons();
-    loadFavoritesList();
+    // Initial load for sidebar favorites
+    loadFavoritesListServerSide();
 
 });
