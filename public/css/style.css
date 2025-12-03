@@ -76,6 +76,29 @@ body {
     transform: translateX(5px);
 }
 
+/* Card Neumorphism */
+.card-neo {
+    background: var(--white); /* Gunakan variabel CSS untuk konsistensi */
+    border: 3px solid var(--border-color); /* Contoh: border tipis dengan warna variabel */
+    border-radius: 12px; /* Sudut membulat */
+    padding: 30px; /* Padding default */
+    box-shadow: var(--shadow-hard); /* Contoh: shadow keluar */
+    transition: all 0.3s ease; /* Transisi halus untuk hover/focus */
+}
+
+.card-neo:hover {
+    box-shadow: var(--shadow-medium); /* Sedikit berubah saat di-hover */
+}
+
+.card-header-neo {
+    font-weight: bold;
+    font-size: 1.25rem;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--border-color);
+    color: var(--primary-color);
+}
+
 /* Mobile Optimization */
 @media (max-width: 768px) {
     /* Perkecil padding container */

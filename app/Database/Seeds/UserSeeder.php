@@ -10,20 +10,16 @@ class UserSeeder extends Seeder
     {
         $data = [
             [
-                'nama' => 'Administrator',
                 'username' => 'admin',
-                'password' => password_hash('admin123', PASSWORD_DEFAULT),
-                'role' => 'admin',
-            ],
-            [
-                'nama' => 'User Biasa',
-                'username' => 'user',
-                'password' => password_hash('user123', PASSWORD_DEFAULT),
-                'role' => 'user',
-            ],
+                'email'    => 'admin@leksikon.id',
+                'password' => password_hash('admin123', PASSWORD_DEFAULT), // Password aman
+                'role'     => 'admin',
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]
         ];
 
-        // Using Query Builder
+        // Insert Batch
         $this->db->table('users')->insertBatch($data);
     }
 }

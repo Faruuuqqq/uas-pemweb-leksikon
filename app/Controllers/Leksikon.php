@@ -19,20 +19,26 @@ class Leksikon extends BaseController
 
         $keyword = $this->request->getVar('keyword');
 
-        // Logic Pencarian
+        // Mulai query builder
+        $builder = $entriModel; 
+
         if ($keyword) {
-            $entriModel->where("MATCH(term, definition) AGAINST('{$keyword}' IN NATURAL LANGUAGE MODE)", null, false);
+            // Gunakan grouping agar OR tidak merusak filter lain jika nanti ada
+            $builder->groupStart()
+                    ->like('term', $keyword)
+                    ->orLike('definition', $keyword)
+                    ->groupEnd();
         }
 
         // --- Word of the Day & Daily Quiz (existing logic) ---
         $kata_hari_ini = null;
         if (!$session->has('wotd_id')) {
-            $kata_hari_ini = $entriModel->orderBy('RAND()')->first();
+            $kata_hari_ini = $builder->orderBy('RAND()')->first();
             if ($kata_hari_ini) {
                 $session->set('wotd_id', $kata_hari_ini['id']);
             }
         } else {
-            $kata_hari_ini = $entriModel->find($session->get('wotd_id')) ?? $entriModel->orderBy('RAND()')->first();
+            $kata_hari_ini = $builder->find($session->get('wotd_id')) ?? $builder->orderBy('RAND()')->first();
             if ($kata_hari_ini) {
                 $session->set('wotd_id', $kata_hari_ini['id']);
             }
@@ -55,7 +61,7 @@ class Leksikon extends BaseController
         // Filtering
         $selectedSumberId = $this->request->getVar('sumber') ? (int)$this->request->getVar('sumber') : null;
         if ($selectedSumberId) {
-            $entriModel->where('sumber_id', $selectedSumberId);
+            $builder->where('sumber_id', $selectedSumberId);
         }
 
         // Sorting
@@ -68,10 +74,10 @@ class Leksikon extends BaseController
         if (!in_array(strtoupper($sortOrder), ['ASC', 'DESC'])) {
             $sortOrder = 'ASC';
         }
-        $entriModel->orderBy($sortBy, $sortOrder);
+        $builder->orderBy($sortBy, $sortOrder);
 
         // Get paginated data
-        $daftar_entri = $entriModel->paginate(10, 'default');
+        $daftar_entri = $builder->paginate(10, 'entri');
 
         // Check favorite status for each entry
         $favoritedEntriIds = [];
@@ -90,7 +96,7 @@ class Leksikon extends BaseController
             'kuis_pilihan' => $kuis_pilihan,
             'notif_kuis' => $session->getFlashdata('notif_kuis'),
             'daftar_entri' => $daftar_entri,
-            'pager' => $entriModel->pager, // Pass pager object
+            'pager' => $builder->pager, // Pass pager object
             'sumber_list' => $sumberModel->orderBy('nama_sumber', 'ASC')->findAll(),
             'selected_sumber' => $selectedSumberId,
             'sort_by' => $sortBy,

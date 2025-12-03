@@ -13,10 +13,10 @@ $routes->get('/', 'Leksikon::index');
 $routes->group('leksikon', static function ($routes) {
     $routes->get('detail/(:num)', 'Leksikon::detail/$1');
     $routes->get('search', 'Leksikon::search');
-    $routes->post('cek_kuis', 'Leksikon::check_quiz');
-    $routes->get('reset_kuis', 'Leksikon::reset_quiz');
-    $routes->get('get_favorites', 'Leksikon::get_favorites');
-    $routes->post('toggle_favorite/(:num)', 'Leksikon::toggle_favorite/$1');
+    $routes->post('cek_kuis', 'Leksikon::checkQuiz');
+    $routes->get('resetQuiz', 'Leksikon::resetQuiz');
+    $routes->get('get_favorites', 'Leksikon::getFavorites');
+    $routes->post('toggleFavorite/(:num)', 'Leksikon::toggleFavorite/$1');
     $routes->get('externalSearch', 'Leksikon::displayExternalSearch');
     $routes->get('externalSearch/query', 'Leksikon::queryExternalSearch');
 });

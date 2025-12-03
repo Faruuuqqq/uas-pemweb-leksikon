@@ -21,10 +21,13 @@
             <div class="row mb-4">
                 <div class="col-md-8 mx-auto">
                     <form action="" method="get">
-                        <div class="input-group shadow-hard"> <input type="text" class="form-control form-control-lg border-2 border-dark" 
-                                   placeholder="Cari kata atau arti..." name="keyword" 
+                        <div class="input-group">
+                            <input type="text" class="form-control form-control-neo" 
+                                   style="border-width: 3px; font-size: 1.1rem;"
+                                   placeholder="Cari istilah atau arti..." 
+                                   name="keyword" 
                                    value="<?= esc($keyword ?? '') ?>">
-                            <button class="btn btn-primary border-2 border-dark fw-bold" type="submit">
+                            <button class="btn btn-primary-neo px-4" type="submit">
                                 <i class="fas fa-search me-2"></i>CARI
                             </button>
                         </div>
@@ -36,6 +39,12 @@
                     </form>
                 </div>
             </div>
+
+            <?php if (isset($keyword) && empty($daftar_entri)): ?>
+                <div class="alert alert-warning border-3 border-dark fw-bold text-center">
+                    Data tidak ditemukan untuk kata kunci "<?= esc($keyword) ?>"
+                </div>
+            <?php endif; ?>
 
             <!-- Filters -->
             <div class="card-neo p-3 mb-4">
@@ -139,7 +148,7 @@
                         </form>
                     <?php else : ?>
                         <p class="text-muted">Kamu sudah menjawab kuis hari ini. Terima kasih!</p>
-                        <a href="<?= site_url('leksikon/resetQuiz') ?>" class="btn btn-sm btn-neo btn-outline-dark">
+                        <a href="<?= site_url('leksikon/resetQuiz') ?>" class="btn btn-neo btn-outline-dark">
                             <i class="fas fa-redo me-1"></i> Coba Kuis Lagi
                         </a>
                     <?php endif; ?>
@@ -148,7 +157,7 @@
 
             <div class="card-neo mb-4">
                 <div class="card-header-neo"><i class="fa-solid fa-star text-warning"></i> Favorit Saya</div>
-                <ul class="list-group list-group-flush" id="favorites-list">
+                <ul class="list-group" id="favorites-list">
                     <li class="list-group-item text-muted small p-3">Memuat favorit...</li>
                 </ul>
             </div>
@@ -161,6 +170,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const favoritesList = document.getElementById('favorites-list');
+    console.log('Generated Favorites URL:', '<?= site_url('leksikon/getFavorites') ?>');
 
     function loadFavorites() {
         if (!favoritesList) return;

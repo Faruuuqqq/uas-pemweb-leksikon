@@ -103,4 +103,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+<script>
+    // Simple UX: Disable tombol & ganti teks saat submit
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const btn = this.querySelector('button[type="submit"]');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Mencari...';
+        btn.disabled = true;
+        btn.classList.add('opacity-75');
+    });
+</script>
 <?= $this->endSection() ?>
