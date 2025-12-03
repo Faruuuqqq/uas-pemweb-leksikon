@@ -24,7 +24,7 @@
                     <li class="nav-item"><a class="nav-link" href="<?= base_url('/') ?>">Beranda</a></li>
                     <li class="nav-item"><a class="nav-link" href="<?= base_url('/portal') ?>">Portal Pencarian</a></li>
                     
-                    <?php if(session()->get('isLoggedIn')): ?>
+                    <?php if (session()->get('isLoggedIn')) : ?>
                          <li class="nav-item ms-3">
                             <span class="fw-bold me-2">Halo, <?= session()->get('name') ?>!</span>
                         </li>
@@ -33,7 +33,7 @@
                                 <i class="fas fa-sign-out-alt me-1"></i> Logout
                             </a>
                         </li>
-                    <?php else: ?>
+                    <?php else : ?>
                         <li class="nav-item">
                             <a class="btn btn-primary-neo btn-sm ms-3" href="<?= base_url('/login') ?>">
                                 <i class="fas fa-user me-1"></i> Login
@@ -56,5 +56,6 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <?= $this->renderSection('scripts') ?>
 </body>
 </html>
