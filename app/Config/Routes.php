@@ -6,42 +6,32 @@ use CodeIgniter\Router\RouteCollection;
  * @var RouteCollection $routes
  */
 
-// --- Route Utama ---
-$routes->get('/', 'Leksikon::index');
+$routes->get('/', 'Home::index');
 
-// --- Grup untuk Fungsionalitas Leksikon ---
-$routes->group('leksikon', static function ($routes) {
-    $routes->get('detail/(:num)', 'Leksikon::detail/$1');
-    $routes->get('search', 'Leksikon::search');
-    $routes->post('cek_kuis', 'Leksikon::checkQuiz');
-    $routes->get('resetQuiz', 'Leksikon::resetQuiz');
-    $routes->get('get_favorites', 'Leksikon::getFavorites');
-    $routes->post('toggleFavorite/(:num)', 'Leksikon::toggleFavorite/$1');
-    $routes->get('externalSearch', 'Leksikon::displayExternalSearch');
-    $routes->get('externalSearch/query', 'Leksikon::queryExternalSearch');
-});
+// Auth Routes
+$routes->get('/login', 'Auth::login');
+$routes->post('/login/auth', 'Auth::auth'); // Proses Login
+$routes->get('/logout', 'Auth::logout');
+$routes->get('/register', 'Auth::register');
+$routes->post('/register/save', 'Auth::save');
 
-
-// --- Grup untuk Halaman Admin (CRUD) ---
-$routes->group('admin', static function ($routes) {
-    $routes->get('/', 'Admin::index');
-    $routes->get('new', 'Admin::create');
-    $routes->post('new', 'Admin::store');
-    $routes->get('edit/(:num)', 'Admin::edit/$1');
-    $routes->post('edit/(:num)', 'Admin::update/$1');
-    $routes->delete('delete/(:num)', 'Admin::delete/$1');
-});
-
-// --- Authentication Routes ---
-$routes->get('login', 'Auth::login');
-$routes->post('login', 'Auth::attemptLogin');
-$routes->get('register', 'Auth::register');
-$routes->post('register', 'Auth::attemptRegister');
-$routes->get('logout', 'Auth::logout');
-$routes->get('profile', 'Auth::profile');
-$routes->post('profile/update', 'Auth::updateProfile');
-
-// --- Portal Routes ---
+// Portal Pencarian (Public)
 $routes->get('/portal', 'Portal::index');
-$routes->get('/portal/search', 'Portal::search');
-$routes->get('portal/api-search', 'Portal::api_search');
+$routes->get('/portal/api-search', 'Portal::api_search'); // AJAX API
+
+// Leksikon Public (Search & Detail)
+$routes->get('/leksikon', 'Leksikon::index');
+$routes->get('/leksikon/detail/(:num)', 'Leksikon::detail/$1');
+
+// Admin Routes (Harus Login)
+$routes->group('admin', ['filter' => 'auth'], function($routes) {
+    // Dashboard Admin
+    $routes->get('/', 'Admin::index'); // Menampilkan list entri
+    
+    // CRUD Entri
+    $routes->get('entri/create', 'Admin::create'); // Form Tambah
+    $routes->post('entri/store', 'Admin::store');  // Proses Simpan
+    $routes->get('entri/edit/(:num)', 'Admin::edit/$1'); // Form Edit
+    $routes->post('entri/update/(:num)', 'Admin::update/$1'); // Proses Update
+    $routes->delete('entri/delete/(:num)', 'Admin::delete/$1'); // Proses Hapus (Method DELETE)
+});
