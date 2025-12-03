@@ -1,0 +1,136 @@
+1. Fitur Searching (Index & Admin)
+Di CodeIgniter 4, pencarian + pagination itu seringkali tricky (saat klik halaman 2, pencariannya hilang). Kita akan buat yang persisten.
+
+Langkah A: Update EntriController.php
+Buka file src/Controllers/EntriController.php. Kita akan modifikasi method index() (untuk publik) dan admin() (untuk admin) agar bisa menangangkap kata kunci.
+
+PHP
+
+// Buka src/Controllers/EntriController.php
+
+public function index()
+{
+    $keyword = $this->request->getVar('keyword');
+    
+    // Logic Pencarian
+    if ($keyword) {
+        $this->entriModel->like('term', $keyword)
+                         ->orLike('definition', $keyword);
+    }
+
+    $data = [
+        'title' => 'Kamus Leksikon',
+        // Pagination otomatis akan membaca query sebelumnya jika model dipanggil berantai
+        'entri' => $this->entriModel->paginate(10, 'entri'), 
+        'pager' => $this->entriModel->pager,
+        'keyword' => $keyword // Kirim balik keyword ke view biar input gak hilang
+    ];
+
+    return view('entri/index.view', $data);
+}
+
+public function admin()
+{
+    // Cek login admin (Asumsi sudah ada filter/middleware, jika belum tambahkan manual)
+    if (!session()->get('isLoggedIn') || session()->get('role') != 'admin') {
+        return redirect()->to('/login');
+    }
+
+    $keyword = $this->request->getVar('keyword');
+
+    if ($keyword) {
+        $this->entriModel->like('term', $keyword)
+                         ->orLike('definition', $keyword);
+    }
+
+    $data = [
+        'title' => 'Dashboard Admin',
+        'entri' => $this->entriModel->paginate(10, 'entri'),
+        'pager' => $this->entriModel->pager,
+        'keyword' => $keyword
+    ];
+
+    return view('entri/admin.view', $data);
+}
+Langkah B: Update View Public (index.view.php)
+Tambahkan form pencarian yang stylish di bagian atas daftar.
+
+Lokasi: src/Views/entri/index.view.php (Di atas tabel/list data)
+
+PHP
+
+<div class="row mb-4">
+    <div class="col-md-6 mx-auto">
+        <form action="" method="get">
+            <div class="input-group shadow-hard"> <input type="text" class="form-control form-control-lg border-2 border-dark" 
+                       placeholder="Cari kata atau arti..." name="keyword" 
+                       value="<?= esc($keyword ?? '') ?>">
+                <button class="btn btn-primary border-2 border-dark fw-bold" type="submit">
+                    <i class="fas fa-search me-2"></i>CARI
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<?php if (empty($entri)): ?>
+    <div class="alert alert-warning border-2 border-dark shadow-sm text-center py-4">
+        <h4><i class="fas fa-search-minus mb-2"></i></h4>
+        <p class="mb-0 fw-bold">Data tidak ditemukan untuk kata kunci "<?= esc($keyword) ?>"</p>
+        <a href="<?= base_url('/') ?>" class="btn btn-sm btn-outline-dark mt-2 fw-bold">Reset Pencarian</a>
+    </div>
+<?php endif; ?>
+Langkah C: Update View Admin (admin.view.php)
+Admin butuh pencarian cepat untuk edit/hapus. Letakkan di pojok kanan atas tabel.
+
+Lokasi: src/Views/entri/admin.view.php (Di atas tabel)
+
+PHP
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="fw-bold">Manajemen Entri</h2>
+    
+    <form action="" method="get" class="d-flex gap-2">
+        <input type="text" class="form-control border-2 border-dark" 
+               placeholder="Cari data..." name="keyword" 
+               value="<?= esc($keyword ?? '') ?>" style="width: 250px;">
+        <button class="btn btn-warning border-2 border-dark fw-bold" type="submit">
+            Cari
+        </button>
+        <?php if($keyword): ?>
+            <a href="<?= base_url('/admin') ?>" class="btn btn-secondary border-2 border-dark">Reset</a>
+        <?php endif; ?>
+    </form>
+</div>
+2. UI Improvement (Apakah sudah rapi?)
+Melihat style.css kamu, konsep Neobrutalism-nya sudah kuat (border: 2px solid #000, box-shadow: 4px 4px 0px #000). Itu sudah sangat rapi dan unik.
+
+Tapi, ada 2 hal kecil yang bisa bikin UI kamu makin "mahal":
+
+A. Highlight Kata Kunci (UX Plus)
+Saat user mencari "makan", akan sangat membantu jika di hasil pencarian kata "makan" itu diberi warna kuning stabilo.
+
+Tambahkan helper function ini di src/functions.php (atau buat baru jika belum ada):
+
+PHP
+
+// Helper untuk highlight teks
+function highlight_keyword($text, $keyword) {
+    if (!$keyword) return $text;
+    // Highlight dengan background kuning neo-brutalist
+    return preg_replace(
+        '/(' . preg_quote($keyword, '/') . ')/i', 
+        '<span style="background-color: #ffeb3b; border: 1px solid #000; padding: 0 2px;">$1</span>', 
+        $text
+    );
+}
+Lalu gunakan di View (index.view.php):
+
+PHP
+
+<td><?= highlight_keyword(esc($item['term']), $keyword ?? '') ?></td>
+<td><?= highlight_keyword(esc($item['definition']), $keyword ?? '') ?></td>
+(Pastikan kamu tidak meng-esc hasil highlight, atau gunakan esc() di dalam fungsi sebelum di-replace).
+
+B. Loading State untuk Portal (Penting!)
+Karena kamu punya fitur "Portal 5 Website", jika salah satu website lemot, halaman webmu akan terasa hang. Pastikan kamu menggunakan AJAX Loading yang kita bahas sebelumnya, atau minimal kasih indikator loading CSS di tombol cari porta
