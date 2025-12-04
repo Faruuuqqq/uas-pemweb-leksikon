@@ -74,7 +74,7 @@
             }
         }, 3000);
 
-        // SweetAlert2 for flash messages
+
         <?php if (session()->getFlashdata('message')) : ?>
             Swal.fire({
                 icon: 'success',

@@ -5,19 +5,24 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Models\EntriModel;
 use App\Models\SumberModel;
+use App\Models\UserModel;
+use App\Models\UserFavoriteModel;
 
 class Admin extends BaseController
 {
     protected $entriModel;
     protected $sumberModel;
+    protected $userModel;
+    protected $favModel;
 
     public function __construct()
     {
         $this->entriModel = new EntriModel();
         $this->sumberModel = new SumberModel();
+        $this->userModel = new UserModel();
+        $this->favModel = new UserFavoriteModel();
     }
 
-    // 1. Dashboard & List Data (Read)
     public function index()
     {
         $keyword = $this->request->getVar('keyword');
@@ -30,17 +35,25 @@ class Admin extends BaseController
                     ->groupEnd();
         }
 
+
+        $stats = [
+            'total_entri' => $this->entriModel->countAllResults(),
+            'total_sumber' => $this->sumberModel->countAllResults(),
+            'total_user' => $this->userModel->countAllResults(),
+            'total_fav' => $this->favModel->countAllResults(), 
+        ];
+
         $data = [
             'title' => 'Dashboard Admin',
             'entri' => $builder->paginate(10, 'entri'),
             'pager' => $builder->pager,
-            'keyword' => $keyword
+            'keyword' => $keyword,
+            'stats' => $stats
         ];
 
         return view('admin/index', $data);
     }
-
-    // 2. Form Tambah (Create View)
+    
     public function create()
     {
         $data = [
@@ -51,10 +64,8 @@ class Admin extends BaseController
         return view('admin/form', $data);
     }
 
-    // 3. Proses Simpan (Create Action)
     public function store()
     {
-        // Validasi
         if (!$this->validate([
             'term' => 'required|min_length(2)',
             'definition' => 'required',
@@ -74,7 +85,6 @@ class Admin extends BaseController
         return redirect()->to('/admin')->with('message', 'Data berhasil ditambahkan!');
     }
 
-    // 4. Form Edit (Update View)
     public function edit($id)
     {
         $data = [
@@ -83,10 +93,9 @@ class Admin extends BaseController
             'sumber' => $this->sumberModel->findAll(),
             'validation' => \Config\Services::validation()
         ];
-        return view('admin/form', $data); // Kita pakai view form yang sama utk Create/Edit
+        return view('admin/form', $data);
     }
 
-    // 5. Proses Update (Update Action)
     public function update($id)
     {
         $this->entriModel->update($id, [
@@ -99,7 +108,6 @@ class Admin extends BaseController
         return redirect()->to('/admin')->with('message', 'Data berhasil diupdate!');
     }
 
-    // 6. Hapus (Delete Action)
     public function delete($id)
     {
         $this->entriModel->delete($id);

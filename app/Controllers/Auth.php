@@ -5,13 +5,10 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Models\UserModel;
 
-// Assuming UserModel exists
-
 class Auth extends BaseController
 {
     public function login()
     {
-        // Display login form
         return view('auth/login');
     }
 
@@ -36,7 +33,6 @@ class Auth extends BaseController
             return redirect()->back()->withInput()->with('error', 'Email atau password salah.');
         }
 
-        // Login successful, set session
         $session = session();
         $session->set([
             'user_id'    => $user['id'],
@@ -51,7 +47,6 @@ class Auth extends BaseController
 
     public function register()
     {
-        // Display registration form
         return view('auth/register');
     }
 
@@ -65,7 +60,6 @@ class Auth extends BaseController
         ];
 
         if (! $this->validate($rules)) {
-            // FIX: Redirect back dengan input dan error validator
             return redirect()->back()->withInput()->with('validation', $this->validator);
         }
 
@@ -75,7 +69,7 @@ class Auth extends BaseController
             'username' => $this->request->getPost('username'),
             'email'    => $this->request->getPost('email'),
             'password' => $this->request->getPost('password'),
-            'role'     => 'user', // Default role for new registrations
+            'role'     => 'user',
         ]);
 
         return redirect()->to('login')->with('message', 'Registrasi berhasil! Silakan login.');
@@ -129,7 +123,6 @@ class Auth extends BaseController
             'email'    => 'required|valid_email',
         ];
 
-        // Only validate password if it's being changed
         $password = $this->request->getPost('password');
         $passConfirm = $this->request->getPost('pass_confirm');
 
@@ -138,7 +131,6 @@ class Auth extends BaseController
             $rules['pass_confirm'] = 'required_with[password]|matches[password]';
         }
 
-        // Check if username or email is being changed and if it's unique
         if ($this->request->getPost('username') !== $currentUser['username']) {
             $rules['username'] .= '|is_unique[users.username,id,' . $userId . ']';
         }
@@ -156,12 +148,11 @@ class Auth extends BaseController
         ];
 
         if (!empty($password)) {
-            $dataToUpdate['password'] = $password; // Password will be hashed by model's beforeUpdate callback
+            $dataToUpdate['password'] = $password;
         }
 
         $userModel->update($userId, $dataToUpdate);
 
-        // Update session with new username/email if changed
         $session->set('username', $dataToUpdate['username']);
         $session->set('email', $dataToUpdate['email']);
 
