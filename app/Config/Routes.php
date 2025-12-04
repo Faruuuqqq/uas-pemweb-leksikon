@@ -17,7 +17,8 @@ $routes->post('/register/save', 'Auth::attemptRegister');
 
 // Portal Pencarian (Public)
 $routes->get('/portal', 'Portal::index');
-$routes->get('/portal/api-search', 'Portal::api_search'); // AJAX API
+// FIX: Samakan URL dan Method Controller
+$routes->get('/portal/apiSearch', 'Portal::apiSearch'); 
 $routes->get('/portal/search', 'Portal::search');
 
 // Leksikon Public (Search & Detail)

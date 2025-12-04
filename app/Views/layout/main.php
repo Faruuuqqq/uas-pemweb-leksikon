@@ -22,26 +22,34 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
-                    <li class="nav-item"><a class="nav-link" href="<?= base_url('/') ?>">Beranda</a></li>
-                    <li class="nav-item"><a class="nav-link" href="<?= base_url('/portal') ?>">Portal Pencarian</a></li>
-                    
-                    <?php if (session()->get('isLoggedIn')) : ?>
-                         <li class="nav-item ms-3">
-                            <span class="fw-bold me-2">Halo, <?= session()->get('username') ?>!</span>
-                        </li>
-                        <li class="nav-item">
-                            <a class="btn btn-danger-neo btn-sm ms-2" href="<?= base_url('/logout') ?>">
-                                <i class="fas fa-sign-out-alt me-1"></i> Logout
-                            </a>
-                        </li>
-                    <?php else : ?>
-                        <li class="nav-item">
-                            <a class="btn btn-primary-neo btn-sm ms-3" href="<?= base_url('/login') ?>">
-                                <i class="fas fa-user me-1"></i> Login
-                            </a>
-                        </li>
-                    <?php endif; ?>
-                </ul>
+    <li class="nav-item"><a class="nav-link" href="<?= base_url('/') ?>">Beranda</a></li>
+    <li class="nav-item"><a class="nav-link" href="<?= base_url('/portal') ?>">Portal Pencarian</a></li>
+    
+    <?php if (session()->get('isLoggedIn')) : ?>
+        <?php if (session()->get('role') == 'admin') : ?>
+            <li class="nav-item">
+                <a class="nav-link btn btn-sm btn-warning-neo ms-2 fw-bold" href="<?= base_url('/admin') ?>">
+                    <i class="fas fa-cogs"></i> Dashboard
+                </a>
+            </li>
+        <?php endif; ?>
+
+        <li class="nav-item ms-3">
+            <span class="fw-bold me-2">Halo, <?= esc(session()->get('username')) ?>!</span>
+        </li>
+        <li class="nav-item">
+            <a class="btn btn-danger-neo btn-sm ms-2" href="<?= base_url('/logout') ?>">
+                <i class="fas fa-sign-out-alt me-1"></i> Logout
+            </a>
+        </li>
+    <?php else : ?>
+        <li class="nav-item">
+            <a class="btn btn-primary-neo btn-sm ms-3" href="<?= base_url('/login') ?>">
+                <i class="fas fa-user me-1"></i> Login
+            </a>
+        </li>
+    <?php endif; ?>
+</ul>
             </div>
         </div>
     </nav>
