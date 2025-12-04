@@ -60,7 +60,7 @@
 
     <footer class="py-4 mt-auto" style="border-top: 3px solid var(--border-color); background: var(--white);">
         <div class="container text-center">
-            <p class="mb-0 fw-bold">&copy; <?= date('Y') ?> Leksikon Modern. <span class="text-muted fw-normal">Dibuat dengan gaya Neobrutalism.</span></p>
+            <p class="mb-0 fw-bold">&copy; <?= date('Y') ?> Leksikon Dev. <span class="text-muted fw-normal">Achmad Faruq Mahdison | 140810240080</span></p>
         </div>
     </footer>
 

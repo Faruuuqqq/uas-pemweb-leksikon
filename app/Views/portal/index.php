@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(data.length > 0) {
                     data.forEach(item => {
                         htmlContent += `
-                        <div class="col-md-6 mb-4">
+                        <div class="col-md-12 mb-4">
                             <div class="card-neo h-100">
                                 <div class="card-header-neo d-flex justify-content-between">
                                     <span>${item.term}</span>
