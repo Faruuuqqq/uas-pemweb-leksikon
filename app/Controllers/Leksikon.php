@@ -48,7 +48,31 @@ class Leksikon extends BaseController
         $kuis_pilihan = [];
         if (!$session->has('kuis_selesai')) {
             if (!$session->has('kuis_jawaban')) {
-                // Quiz generation logic...
+                // Quiz generation logic
+                $allEntries = $entriModel->findAll();
+                if (count($allEntries) < 4) { // Need at least 4 entries for a meaningful quiz
+                    $kuis_soal = null; // Cannot generate quiz
+                    $kuis_pilihan = [];
+                } else {
+                    shuffle($allEntries);
+
+                    $correctAnswerEntry = array_shift($allEntries); // Get one random for correct answer
+                    $incorrectChoicesEntries = array_slice($allEntries, 0, 3); // Get 3 others for incorrect choices
+
+                    $choices = [];
+                    $choices[] = $correctAnswerEntry['term'];
+                    foreach ($incorrectChoicesEntries as $entry) {
+                        $choices[] = $entry['term'];
+                    }
+                    shuffle($choices); // Shuffle choices
+
+                    $session->set('kuis_jawaban', $correctAnswerEntry['term']);
+                    $session->set('kuis_pilihan', $choices);
+                    $session->set('kuis_soal_definisi', $correctAnswerEntry['definition']);
+
+                    $kuis_soal = ['definition' => $correctAnswerEntry['definition']];
+                    $kuis_pilihan = $choices;
+                }
             } else {
                 $kuis_soal = ['definition' => $session->get('kuis_soal_definisi')];
                 $kuis_pilihan = $session->get('kuis_pilihan');

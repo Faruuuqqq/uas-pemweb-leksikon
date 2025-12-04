@@ -42,7 +42,7 @@
             </div>
         <?php endif; ?>
 
-        <form action="<?= base_url('login') ?>" method="post">
+        <form action="<?= base_url('login/auth') ?>" method="post">
             <?= csrf_field() ?>
             <div class="mb-3">
                 <label class="fw-bold mb-1">Email / Username</label>

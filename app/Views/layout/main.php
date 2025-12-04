@@ -27,7 +27,7 @@
                     
                     <?php if (session()->get('isLoggedIn')) : ?>
                          <li class="nav-item ms-3">
-                            <span class="fw-bold me-2">Halo, <?= session()->get('name') ?>!</span>
+                            <span class="fw-bold me-2">Halo, <?= session()->get('username') ?>!</span>
                         </li>
                         <li class="nav-item">
                             <a class="btn btn-danger-neo btn-sm ms-2" href="<?= base_url('/logout') ?>">
@@ -65,6 +65,35 @@
                 bsAlert.close();
             }
         }, 3000);
+
+        // SweetAlert2 for flash messages
+        <?php if (session()->getFlashdata('message')) : ?>
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: '<?= session()->getFlashdata('message') ?>',
+                showConfirmButton: false,
+                timer: 3000
+            });
+        <?php endif; ?>
+        <?php if (session()->getFlashdata('error')) : ?>
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: '<?= session()->getFlashdata('error') ?>',
+                showConfirmButton: false,
+                timer: 3000
+            });
+        <?php endif; ?>
+        <?php if (session('validation')) : ?>
+            Swal.fire({
+                icon: 'error',
+                title: 'Validation Error!',
+                html: '<?= str_replace(["\n", "\r"], '', session('validation')->listErrors('list')) ?>', // 'list' format for ul/li
+                showConfirmButton: false,
+                timer: 5000 // Give more time for multiple errors
+            });
+        <?php endif; ?>
     </script>
     <?= $this->renderSection('scripts') ?>
 </body>

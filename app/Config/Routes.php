@@ -6,22 +6,27 @@ use CodeIgniter\Router\RouteCollection;
  * @var RouteCollection $routes
  */
 
-$routes->get('/', 'Home::index');
+$routes->get('/', 'Leksikon::index');
 
 // Auth Routes
 $routes->get('/login', 'Auth::login');
-$routes->post('/login/auth', 'Auth::auth'); // Proses Login
+$routes->post('/login/auth', 'Auth::attemptLogin'); // Proses Login
 $routes->get('/logout', 'Auth::logout');
 $routes->get('/register', 'Auth::register');
-$routes->post('/register/save', 'Auth::save');
+$routes->post('/register/save', 'Auth::attemptRegister');
 
 // Portal Pencarian (Public)
 $routes->get('/portal', 'Portal::index');
 $routes->get('/portal/api-search', 'Portal::api_search'); // AJAX API
+$routes->get('/portal/search', 'Portal::search');
 
 // Leksikon Public (Search & Detail)
 $routes->get('/leksikon', 'Leksikon::index');
 $routes->get('/leksikon/detail/(:num)', 'Leksikon::detail/$1');
+$routes->get('/leksikon/resetQuiz', 'Leksikon::resetQuiz');
+$routes->get('/leksikon/getFavorites', 'Leksikon::getFavorites');
+$routes->post('/leksikon/toggleFavorite/(:num)', 'Leksikon::toggleFavorite/$1');
+$routes->post('/leksikon/checkQuiz', 'Leksikon::checkQuiz');
 
 // Admin Routes (Harus Login)
 $routes->group('admin', ['filter' => 'auth'], function($routes) {

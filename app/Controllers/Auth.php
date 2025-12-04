@@ -65,7 +65,9 @@ class Auth extends BaseController
         ];
 
         if (! $this->validate($rules)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            return view('auth/register', [
+                'validation' => \Config\Services::validation(),
+            ]);
         }
 
         $userModel = new UserModel();

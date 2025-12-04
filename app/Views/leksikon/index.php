@@ -6,11 +6,6 @@
         <!-- Main Content -->
         <div class="col-lg-8">
             
-            <?php if (isset($notif_kuis) && $notif_kuis) : ?>
-                <div class="alert alert-<?= $notif_kuis['tipe'] == 'success' ? 'success' : 'danger' ?> border-2 border-dark shadow-sm fw-bold mb-4" role="alert">
-                    <i class="fas <?= $notif_kuis['tipe'] == 'success' ? 'fa-check-circle' : 'fa-times-circle' ?> me-2"></i> <?= $notif_kuis['pesan'] ?>
-                </div>
-            <?php endif; ?>
 
             <!-- Header -->
             <div class="card-neo p-4 mb-4" style="background-color: var(--primary-color); color: var(--white);">
@@ -83,13 +78,17 @@
                 <div class="list-group list-group-flush">
                     <?php if (!empty($daftar_entri)) : ?>
                         <?php foreach ($daftar_entri as $entri) : ?>
-                            <a href="<?= site_url('leksikon/detail/' . $entri['id']) ?>" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3">
-                                <div>
-                                    <h6 class="mb-1 fw-bold" style="color: var(--primary-color);"><?= highlight_keyword(esc($entri['term']), $keyword ?? '') ?></h6>
-                                    <small class="text-muted"><?= highlight_keyword(esc(substr($entri['definition'], 0, 120)), $keyword ?? '') ?>...</small>
-                                </div>
-                                <i class="<?= $entri['isFavorited'] ? 'fa-solid fa-star text-warning' : 'fa-regular fa-star' ?>" style="font-size: 1.5rem;"></i>
-                            </a>
+                            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3">
+                                <a href="<?= site_url('leksikon/detail/' . $entri['id']) ?>" class="d-flex flex-grow-1 text-decoration-none text-dark">
+                                    <div>
+                                        <h6 class="mb-1 fw-bold" style="color: var(--primary-color);"><?= highlight_keyword(esc($entri['term']), $keyword ?? '') ?></h6>
+                                        <small class="text-muted"><?= highlight_keyword(esc(substr($entri['definition'], 0, 120)), $keyword ?? '') ?>...</small>
+                                    </div>
+                                </a>
+                                <button class="btn btn-link favorite-toggle p-0 ms-3" data-id="<?= $entri['id'] ?>" data-favorited="<?= $entri['isFavorited'] ? 'true' : 'false' ?>">
+                                    <i class="<?= $entri['isFavorited'] ? 'fa-solid fa-star text-warning' : 'fa-regular fa-star' ?>" style="font-size: 1.5rem;"></i>
+                                </button>
+                            </div>
                         <?php endforeach; ?>
                     <?php else : ?>
                         <?php if (empty($daftar_entri) && $keyword) : ?>
@@ -108,7 +107,7 @@
                 </div>
                  <?php if (isset($pager) && $pager->getPageCount() > 1) : ?>
                     <div class="p-3 border-top border-2 border-dark bg-light">
-                        <?= $pager->links() ?>
+                        <?= $pager->links('entri', 'default_full') ?>
                     </div>
                  <?php endif; ?>
             </div>
@@ -116,6 +115,11 @@
 
         <!-- Sidebar -->
         <div class="col-lg-4">
+            <?php if (isset($notif_kuis) && $notif_kuis) : ?>
+                <div class="alert alert-<?= $notif_kuis['tipe'] == 'success' ? 'success' : 'danger' ?> border-2 border-dark shadow-sm fw-bold mb-4" role="alert">
+                    <i class="fas <?= $notif_kuis['tipe'] == 'success' ? 'fa-check-circle' : 'fa-times-circle' ?> me-2"></i> <?= $notif_kuis['pesan'] ?>
+                </div>
+            <?php endif; ?>
             <div class="card-neo mb-4">
                 <div class="card-header-neo">Kata Hari Ini</div>
                 <div class="card-body">
@@ -170,11 +174,13 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const favoritesList = document.getElementById('favorites-list');
-    console.log('Generated Favorites URL:', '<?= site_url('leksikon/getFavorites') ?>');
 
     function loadFavorites() {
         if (!favoritesList) return;
         
+        // Add a loading indicator
+        favoritesList.innerHTML = '<li class="list-group-item text-muted small p-3">Memuat favorit...</li>';
+
         fetch('<?= site_url('leksikon/getFavorites') ?>', {
             headers: {'X-Requested-With': 'XMLHttpRequest'}
         })
@@ -215,6 +221,73 @@ document.addEventListener('DOMContentLoaded', function() {
         favoritesList.innerHTML = `<li class="list-group-item text-muted small p-3">Silakan <a href="<?=site_url('login')?>">login</a> untuk melihat favorit.</li>`;
     <?php endif; ?>
 
+    // Handle favorite toggle clicks
+    document.querySelectorAll('.favorite-toggle').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault(); // Prevent default button action
+
+            const entriId = this.dataset.id;
+            const isFavorited = this.dataset.favorited === 'true';
+            const icon = this.querySelector('i');
+            const self = this; // Store reference to the button
+
+            fetch(`<?= site_url('leksikon/toggleFavorite/') ?>${entriId}`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                    '<?= csrf_header() ?>': '<?= csrf_hash() ?>' // CSRF Token
+                },
+                // For POST, you might need to send a body, even if empty, for CSRF.
+                // Or you can skip Content-Type for empty body POSTs.
+                body: JSON.stringify({}) 
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status === 'success') {
+                    // Update icon and dataset
+                    if (result.action === 'added') {
+                        icon.classList.remove('fa-regular');
+                        icon.classList.add('fa-solid', 'text-warning');
+                        self.dataset.favorited = 'true';
+                    } else {
+                        icon.classList.remove('fa-solid', 'text-warning');
+                        icon.classList.add('fa-regular');
+                        self.dataset.favorited = 'false';
+                    }
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: result.message,
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                    loadFavorites(); // Reload favorites list in sidebar
+                } else if (result.status === 'error') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: result.message,
+                        showConfirmButton: false,
+                        timer: 3000
+                    });
+                     if (result.message.includes('login')) { // Redirect to login if user needs to login
+                        setTimeout(() => window.location.href = '<?= site_url('login') ?>', 1500);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error toggling favorite:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error Jaringan!',
+                    text: 'Gagal terhubung ke server.',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            });
+        });
+    });
 });
 </script>
 <?= $this->endSection() ?>

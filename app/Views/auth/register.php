@@ -53,7 +53,7 @@
             </div>
         <?php endif; ?>
         
-        <form action="<?= site_url('register') ?>" method="post">
+        <form action="<?= site_url('register/save') ?>" method="post">
             <?= csrf_field() ?>
             <div class="mb-3">
                 <label for="username" class="form-label fw-bold">Username</label>
