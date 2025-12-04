@@ -20,37 +20,53 @@ class EntriModel extends Model
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
 
-    // Validation
-    protected $validationRules      = [];
-    protected $validationMessages   = [];
-    protected $skipValidation       = false;
-    protected $cleanValidationRules = true;
-
-    public function searchAndPaginate($keyword, $perPage = 20)
+    /**
+     * Mencari data dengan filter, sorting, dan pagination
+     */
+    public function searchAndPaginate($keyword = null, $sumberId = null, $sortBy = 'term', $sortOrder = 'ASC', $perPage = 10)
     {
-        $builder = $this->builder(); // Get query builder instance
+        // 1. Base Query (Join dengan Sumber)
+        $this->select('entri.*, sumber.nama_sumber');
+        $this->join('sumber', 'sumber.id = entri.sumber_id', 'left');
 
-        $builder->select('entri.*, sumber.nama_sumber')
-                ->join('sumber', 'sumber.id = entri.sumber_id', 'left');
-
+        // 2. Filter Keyword (Pencarian)
         if ($keyword) {
             $escapedKeyword = $this->db->escapeString($keyword);
-            $builder->select("entri.*, sumber.nama_sumber, MATCH(term, definition) AGAINST('{$escapedKeyword}') as score");
-            $builder->where("MATCH(term, definition) AGAINST('{$escapedKeyword}' IN NATURAL LANGUAGE MODE)");
-            $builder->orderBy('score', 'DESC');
-        } else {
-            $builder->orderBy('entri.id', 'DESC');
+            // Tambahkan skor relevansi untuk sorting default pencarian
+            $this->select("MATCH(term, definition) AGAINST('{$escapedKeyword}') as score");
+            $this->where("MATCH(term, definition) AGAINST('{$escapedKeyword}' IN NATURAL LANGUAGE MODE)");
         }
 
+        // 3. Filter Sumber (Jika ada yang dipilih)
+        if ($sumberId) {
+            $this->where('entri.sumber_id', $sumberId);
+        }
+
+        // 4. Sorting Logic
+        $allowedSortColumns = ['term', 'id', 'created_at', 'updated_at', 'score'];
+        
+        // Validasi kolom sorting
+        if (!in_array($sortBy, $allowedSortColumns)) {
+            $sortBy = ($keyword) ? 'score' : 'term'; // Default: Score jika cari, Term jika tidak
+        }
+        
+        // Validasi urutan (ASC/DESC)
+        $sortOrder = strtoupper($sortOrder);
+        if (!in_array($sortOrder, ['ASC', 'DESC'])) {
+            $sortOrder = ($keyword && $sortBy == 'score') ? 'DESC' : 'ASC';
+        }
+
+        $this->orderBy($sortBy, $sortOrder);
+
+        // 5. Return Data & Pager
         return [
-            'entri' => $builder->paginate($perPage, 'default'),
+            'entri' => $this->paginate($perPage, 'default'),
             'pager' => $this->pager,
         ];
     }
 
     public function search($keyword)
     {
-        // Pakai Match Against (Lebih cepat untuk data besar)
         return $this->select('*')
                     ->where("MATCH(term, definition) AGAINST ('$keyword' IN NATURAL LANGUAGE MODE)")
                     ->findAll();

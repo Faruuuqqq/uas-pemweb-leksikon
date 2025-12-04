@@ -97,17 +97,24 @@
                     <tr>
                         <td class="p-3 fw-bold"><?= esc($item['term']) ?></td>
                         <td class="p-3"><?= substr(esc($item['definition']), 0, 100) ?>...</td>
-                        <td class="p-3 text-center" style="width: 150px;">
-                            <a href="<?= base_url('admin/entri/edit/'.$item['id']) ?>" class="btn btn-sm btn-warning-neo btn-neo me-1">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            
-                            <form action="<?= base_url('admin/entri/delete/'.$item['id']) ?>" method="post" class="d-inline" onsubmit="return confirm('Yakin hapus?');">
-                                <?= csrf_field() ?> <input type="hidden" name="_method" value="DELETE">
-                                <button type="submit" class="btn btn-sm btn-danger-neo btn-neo">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
+                        <td class="p-3">
+                            <div class="d-flex justify-content-center gap-2">
+                                
+                                <a href="<?= base_url('admin/entri/edit/'.$item['id']) ?>" 
+                                class="btn btn-sm btn-warning-neo btn-neo" 
+                                title="Edit Data">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                
+                                <form action="<?= base_url('admin/entri/delete/'.$item['id']) ?>" method="post" class="d-inline" onsubmit="return confirm('Yakin hapus?');">
+                                    <?= csrf_field() ?> 
+                                    <input type="hidden" name="_method" value="DELETE">
+                                    <button type="submit" class="btn btn-sm btn-danger-neo btn-neo" title="Hapus Data">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+
+                            </div>
                         </td>
                     </tr>
                     <?php endforeach; ?>

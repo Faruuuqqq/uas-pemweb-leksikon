@@ -74,7 +74,15 @@
 
             <!-- Entry List -->
             <div class="card-neo">
-                <div class="card-header-neo">Daftar Entri</div>
+                <div class="card-header-neo d-flex justify-content-between align-items-center">
+                    <span>Daftar Entri</span>
+                    
+                    <span class="badge bg-white text-primary rounded-pill shadow-sm" style="font-size: 0.9rem; color: var(--primary-color) !important;">
+                        <i class="fas fa-database me-1"></i> 
+                        <?= number_format($pager->getTotal(), 0, ',', '.') ?> Entri
+                    </span>
+                </div>
+
                 <div class="list-group list-group-flush">
                     <?php if (!empty($daftar_entri)) : ?>
                         <?php foreach ($daftar_entri as $entri) : ?>
@@ -105,11 +113,16 @@
                         <?php endif; ?>
                     <?php endif; ?>
                 </div>
-                 <?php if (isset($pager) && $pager->getPageCount() > 1) : ?>
-                    <div class="p-3 border-top border-2 border-dark bg-light">
-                        <?= $pager->links('entri', 'default_full') ?>
+                <?php if (empty($entri)): ?>
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-search fa-3x mb-3 text-gray-300"></i>
+                            <p>Istilah tidak ditemukan.</p>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="mt-5 mb-5 d-flex justify-content-center">
+                        <?= $pager->links('default', 'default_full') ?>
                     </div>
-                 <?php endif; ?>
             </div>
         </div>
 
@@ -168,6 +181,7 @@
         </div>
     </div>
 </div>
+
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>

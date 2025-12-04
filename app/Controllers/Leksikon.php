@@ -5,127 +5,73 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Models\EntriModel;
 use App\Models\SumberModel;
-use App\Models\ContohPenggunaanModel;
 use App\Models\UserFavoriteModel;
+use App\Models\ContohPenggunaanModel;
 
 class Leksikon extends BaseController
 {
+    protected $entriModel;
+    protected $sumberModel;
+
+    public function __construct()
+    {
+        $this->entriModel = new EntriModel();
+        $this->sumberModel = new SumberModel();
+    }
+
     public function index()
     {
         helper('leksikon');
-        $entriModel = new EntriModel();
-        $sumberModel = new SumberModel();
         $session = session();
 
-        $keyword = $this->request->getVar('keyword');
-
-        // Mulai query builder
-        $builder = $entriModel; 
-
-        if ($keyword) {
-            // Gunakan grouping agar OR tidak merusak filter lain jika nanti ada
-            $builder->groupStart()
-                    ->like('term', $keyword)
-                    ->orLike('definition', $keyword)
-                    ->groupEnd();
-        }
-
-        // --- Word of the Day & Daily Quiz (existing logic) ---
         $kata_hari_ini = null;
-        if (!$session->has('wotd_id')) {
-            $kata_hari_ini = $builder->orderBy('RAND()')->first();
+        if ($session->has('wotd_id')) {
+            $kata_hari_ini = $this->entriModel->find($session->get('wotd_id'));
+        }
+        if (!$kata_hari_ini) {
+            $kata_hari_ini = $this->entriModel->orderBy('RAND()')->first();
             if ($kata_hari_ini) {
                 $session->set('wotd_id', $kata_hari_ini['id']);
             }
-        } else {
-            $kata_hari_ini = $builder->find($session->get('wotd_id')) ?? $builder->orderBy('RAND()')->first();
-            if ($kata_hari_ini) {
-                $session->set('wotd_id', $kata_hari_ini['id']);
-            }
         }
 
-        $kuis_soal = null;
-        $kuis_pilihan = [];
-        if (!$session->has('kuis_selesai')) {
-            if (!$session->has('kuis_jawaban')) {
-                // Quiz generation logic
-                $allEntries = $entriModel->findAll();
-                if (count($allEntries) < 4) { // Need at least 4 entries for a meaningful quiz
-                    $kuis_soal = null; // Cannot generate quiz
-                    $kuis_pilihan = [];
-                } else {
-                    shuffle($allEntries);
-
-                    $correctAnswerEntry = array_shift($allEntries); // Get one random for correct answer
-                    $incorrectChoicesEntries = array_slice($allEntries, 0, 3); // Get 3 others for incorrect choices
-
-                    $choices = [];
-                    $choices[] = $correctAnswerEntry['term'];
-                    foreach ($incorrectChoicesEntries as $entry) {
-                        $choices[] = $entry['term'];
-                    }
-                    shuffle($choices); // Shuffle choices
-
-                    $session->set('kuis_jawaban', $correctAnswerEntry['term']);
-                    $session->set('kuis_pilihan', $choices);
-                    $session->set('kuis_soal_definisi', $correctAnswerEntry['definition']);
-
-                    $kuis_soal = ['definition' => $correctAnswerEntry['definition']];
-                    $kuis_pilihan = $choices;
-                }
-            } else {
-                $kuis_soal = ['definition' => $session->get('kuis_soal_definisi')];
-                $kuis_pilihan = $session->get('kuis_pilihan');
-            }
-        }
-        // --- End of WOTD & Quiz ---
-
-        // --- Query Building ---
-        // Query will already have `like` conditions if keyword exists.
-        // Filtering
-        $selectedSumberId = $this->request->getVar('sumber') ? (int)$this->request->getVar('sumber') : null;
-        if ($selectedSumberId) {
-            $builder->where('sumber_id', $selectedSumberId);
-        }
-
-        // Sorting
+        $keyword = $this->request->getVar('keyword');
+        $sumberId = $this->request->getVar('sumber');
         $sortBy = $this->request->getVar('sort_by') ?? 'term';
         $sortOrder = $this->request->getVar('sort_order') ?? 'ASC';
-        $allowedSortColumns = ['term', 'id', 'created_at'];
-        if (!in_array($sortBy, $allowedSortColumns)) {
-            $sortBy = 'term';
-        }
-        if (!in_array(strtoupper($sortOrder), ['ASC', 'DESC'])) {
-            $sortOrder = 'ASC';
-        }
-        $builder->orderBy($sortBy, $sortOrder);
 
-        // Get paginated data
-        $daftar_entri = $builder->paginate(10, 'entri');
+        $dataResult = $this->entriModel->searchAndPaginate($keyword, $sumberId, $sortBy, $sortOrder, 10);
+        
+        $daftar_entri = $dataResult['entri'];
+        $pager = $dataResult['pager'];
 
-        // Check favorite status for each entry
-        $favoritedEntriIds = [];
         if ($session->get('isLoggedIn')) {
             $userFavoriteModel = new UserFavoriteModel();
             $favoritedEntries = $userFavoriteModel->where('user_id', $session->get('user_id'))->findAll();
             $favoritedEntriIds = array_column($favoritedEntries, 'entri_id');
-        }
-        foreach ($daftar_entri as &$entry) {
-            $entry['isFavorited'] = in_array($entry['id'], $favoritedEntriIds);
+
+            foreach ($daftar_entri as &$entry) {
+                $entry['isFavorited'] = in_array($entry['id'], $favoritedEntriIds);
+            }
+        } else {
+            foreach ($daftar_entri as &$entry) {
+                $entry['isFavorited'] = false;
+            }
         }
 
         $data = [
+            'title' => 'Leksikon Daring',
             'kata_hari_ini' => $kata_hari_ini,
-            'kuis_soal' => $kuis_soal,
-            'kuis_pilihan' => $kuis_pilihan,
-            'notif_kuis' => $session->getFlashdata('notif_kuis'),
             'daftar_entri' => $daftar_entri,
-            'pager' => $builder->pager, // Pass pager object
-            'sumber_list' => $sumberModel->orderBy('nama_sumber', 'ASC')->findAll(),
-            'selected_sumber' => $selectedSumberId,
+            'pager' => $pager,
+            'keyword' => $keyword,
+            'sumber_list' => $this->sumberModel->orderBy('nama_sumber', 'ASC')->findAll(),
+            'selected_sumber' => $sumberId,
             'sort_by' => $sortBy,
             'sort_order' => $sortOrder,
-            'keyword' => $keyword // Kirim balik keyword ke view biar input gak hilang
+            'kuis_soal' => null, 
+            'kuis_pilihan' => [],
+            'notif_kuis' => null
         ];
 
         return view('leksikon/index', $data);
@@ -134,44 +80,32 @@ class Leksikon extends BaseController
     public function detail($id)
     {
         $entriModel = new EntriModel();
-        $sumberModel = new SumberModel();
         $contohPenggunaanModel = new ContohPenggunaanModel();
-        $userFavoriteModel = new UserFavoriteModel(); // Instantiate UserFavoriteModel
+        $userFavoriteModel = new UserFavoriteModel();
 
         if (!is_numeric($id) || $id < 1) {
-            return redirect()->to('/')->with('error', 'ID tidak ditemukan atau tidak valid.');
+             return redirect()->to('/')->with('error', 'ID tidak valid.');
         }
 
-        // Fetch entry and join with sumber
-        $entri = $entriModel
-            ->select('entri.*, sumber.nama_sumber, sumber.deskripsi as deskripsi_sumber')
-            ->join('sumber', 'sumber.id = entri.sumber_id', 'left')
-            ->find($id);
+        $entri = $entriModel->select('entri.*, sumber.nama_sumber, sumber.deskripsi as deskripsi_sumber')
+                            ->join('sumber', 'sumber.id = entri.sumber_id', 'left')
+                            ->find($id);
 
         if (!$entri) {
-            return redirect()->to('/')->with('error', "Entri dengan ID {$id} tidak ditemukan.");
+            return redirect()->to('/')->with('error', 'Data tidak ditemukan');
         }
 
-        // Determine if the current entry is favorited by the logged-in user
         $isFavorited = false;
-        $session = session();
-        if ($session->get('isLoggedIn')) {
-            $userId = $session->get('user_id');
-            $existingFavorite = $userFavoriteModel->where('user_id', $userId)
-                                                  ->where('entri_id', $id)
-                                                  ->first();
-            if ($existingFavorite) {
-                $isFavorited = true;
-            }
+        if (session()->get('isLoggedIn')) {
+            $fav = $userFavoriteModel->where('user_id', session()->get('user_id'))
+                                     ->where('entri_id', $id)->first();
+            $isFavorited = (bool) $fav;
         }
-
-        // Fetch examples
-        $contoh = $contohPenggunaanModel->where('entri_id', $id)->findAll();
 
         $data = [
             'entri' => $entri,
-            'contoh' => $contoh,
-            'isFavorited' => $isFavorited, // Pass favorite status to the view
+            'contoh' => $contohPenggunaanModel->where('entri_id', $id)->findAll(),
+            'isFavorited' => $isFavorited
         ];
 
         return view('leksikon/detail', $data);
@@ -186,8 +120,7 @@ class Leksikon extends BaseController
         }
 
         $entriModel = new EntriModel();
-        $results = $entriModel
-            ->select('id, term, definition')
+        $results = $entriModel->select('id, term, definition')
             ->where("MATCH(term, definition) AGAINST('{$q}' IN NATURAL LANGUAGE MODE)", null, false)
             ->limit(5)
             ->findAll();
@@ -197,41 +130,29 @@ class Leksikon extends BaseController
 
     public function checkQuiz()
     {
-        $session = session();
-        $jawaban_user = $this->request->getPost('jawaban_user');
-        $jawaban_benar = $session->get('kuis_jawaban');
+        $entriId = $this->request->getPost('entri_id');
+        $userAnswer = trim($this->request->getPost('answer'));
 
-        if (!empty($jawaban_user) && !empty($jawaban_benar)) {
-            if ($jawaban_user === $jawaban_benar) {
-                $session->setFlashdata('notif_kuis', ['tipe' => 'success', 'pesan' => 'Jawaban kuis benar!']);
-            } else {
-                $session->setFlashdata('notif_kuis', [
-                    'tipe' => 'danger',
-                    'pesan' => "Jawaban salah. Yang benar: " . htmlspecialchars($jawaban_benar)
-                ]);
-            }
+        $entriModel = new EntriModel();
+        $entri = $entriModel->find($entriId);
+
+        if (!$entri) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Soal tidak ditemukan']);
         }
 
-        $session->set('kuis_selesai', true);
+        $isCorrect = strcasecmp($userAnswer, $entri['term']) === 0;
 
-        $session->remove('kuis_jawaban');
-        $session->remove('kuis_pilihan');
-        $session->remove('kuis_soal_definisi');
-
-        return redirect()->to(site_url('/'));
+        return $this->response->setJSON([
+            'status' => 'success',
+            'is_correct' => $isCorrect,
+            'correct_answer' => $entri['term']
+        ]);
     }
 
     public function resetQuiz()
     {
         $session = session();
-
-        $session->remove('kuis_selesai');
-        $session->remove('notif_kuis');
-        $session->remove('kuis_jawaban');
-        $session->remove('kuis_pilihan');
-        $session->remove('kuis_soal_definisi');
-        $session->remove('wotd_id'); // Also reset WOTD
-
+        $session->remove(['kuis_selesai', 'notif_kuis', 'kuis_jawaban', 'kuis_pilihan', 'kuis_soal_definisi', 'wotd_id']);
         return redirect()->to(site_url('/'));
     }
 
@@ -239,14 +160,13 @@ class Leksikon extends BaseController
     {
         $session = session();
         if (! $session->get('isLoggedIn')) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Anda harus login untuk melihat favorit.']);
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Anda harus login.']);
         }
 
         $userId = $session->get('user_id');
         $userFavoriteModel = new UserFavoriteModel();
         $entriModel = new EntriModel();
 
-        // Get all favorited entry IDs for the current user
         $favoritedEntries = $userFavoriteModel->where('user_id', $userId)->findAll();
         $favoritedEntriIds = array_column($favoritedEntries, 'entri_id');
 
@@ -254,7 +174,6 @@ class Leksikon extends BaseController
             return $this->response->setJSON(['status' => 'success', 'data' => []]);
         }
 
-        // Fetch details of the favorited entries
         $results = $entriModel->select('id, term, definition')->whereIn('id', $favoritedEntriIds)->findAll();
 
         return $this->response->setJSON(['status' => 'success', 'data' => $results]);
@@ -264,7 +183,7 @@ class Leksikon extends BaseController
     {
         $session = session();
         if (! $session->get('isLoggedIn')) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Anda harus login untuk menandai favorit.']);
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Anda harus login.']);
         }
 
         $userId = $session->get('user_id');
@@ -277,13 +196,11 @@ class Leksikon extends BaseController
                                               ->first();
 
         if ($existingFavorite) {
-            // Already favorited, so remove it
             $userFavoriteModel->delete($existingFavorite['id']);
             return $this->response->setJSON(['status' => 'success', 'message' => 'Favorit dihapus.', 'action' => 'removed']);
         } else {
-            // Not favorited, so add it
             $userFavoriteModel->insert([
-                'user_id'  => $userId,
+                'user_id' => $userId,
                 'entri_id' => $entriId,
             ]);
             return $this->response->setJSON(['status' => 'success', 'message' => 'Favorit ditambahkan.', 'action' => 'added']);
@@ -304,27 +221,18 @@ class Leksikon extends BaseController
             return $this->response->setJSON($allResults);
         }
 
-        // Koeln Lexicon API
         $koelnLexiconAPI = new \App\Libraries\KoelnLexiconAPI();
-        $koelnResults = $koelnLexiconAPI->search($query);
-        $allResults['koeln'] = $koelnResults;
+        $allResults['koeln'] = $koelnLexiconAPI->search($query);
 
-        // Learn Sanskrit Scraper
         $learnSanskritScraper = new \App\Libraries\LearnSanskritScraper();
-        $learnSanskritResults = $learnSanskritScraper->search($query);
-        $allResults['learnsanskrit'] = $learnSanskritResults;
+        $allResults['learnsanskrit'] = $learnSanskritScraper->search($query);
 
-        // Sealang Scraper (Library and OJED)
         $sealangScraper = new \App\Libraries\SealangScraper();
-        $sealangLibraryResults = $sealangScraper->searchLibrary($query);
-        $allResults['sealangLibrary'] = $sealangLibraryResults;
-        $sealangOjedResults = $sealangScraper->searchOjed($query);
-        $allResults['sealangOjed'] = $sealangOjedResults;
+        $allResults['sealangLibrary'] = $sealangScraper->searchLibrary($query);
+        $allResults['sealangOjed'] = $sealangScraper->searchOjed($query);
 
-        // Sastra Scraper
         $sastraScraper = new \App\Libraries\SastraScraper();
-        $sastraResults = $sastraScraper->search($query);
-        $allResults['sastra'] = $sastraResults;
+        $allResults['sastra'] = $sastraScraper->search($query);
 
         return $this->response->setJSON($allResults);
     }
