@@ -36,7 +36,7 @@
 
                         <div class="mb-4">
                             <label class="fw-bold mb-1">Definisi</label>
-                            <textarea name="definition" class="form-control form-control-neo" rows="5" required><?= old('definition', $entri['definition'] ?? '')</textarea>
+                            <textarea name="definition" class="form-control form-control-neo" rows="5" required><?= esc(old('definition', $entri['definition'] ?? '')) ?></textarea>
                         </div>
 
                         <div class="d-flex justify-content-between">

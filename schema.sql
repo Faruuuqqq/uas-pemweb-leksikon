@@ -92,18 +92,4 @@ CREATE TABLE `contoh_penggunaan` (
     CONSTRAINT `contoh_entri_fk` FOREIGN KEY (`entri_id`) REFERENCES `entri` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Struktur Tabel untuk `quiz_attempts`
---
-DROP TABLE IF EXISTS `quiz_attempts`;
-CREATE TABLE `quiz_attempts` (
-    `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-    `user_id` INT(11) UNSIGNED NOT NULL,
-    `score` INT(5) NOT NULL,
-    `attempt_date` DATETIME NOT NULL,
-    PRIMARY KEY (`id`),
-    KEY `user_id_fk` (`user_id`),
-    CONSTRAINT `quiz_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 SET FOREIGN_KEY_CHECKS = 1;

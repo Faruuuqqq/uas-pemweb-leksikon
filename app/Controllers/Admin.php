@@ -25,17 +25,17 @@ class Admin extends BaseController
 
     public function index()
     {
+        // 1. Ambil Parameter Request
         $keyword = $this->request->getVar('keyword');
-        $builder = $this->entriModel;
+        $sumberId = $this->request->getVar('sumber'); // Tambahan Filter
+        $sortBy = $this->request->getVar('sort_by') ?? 'id'; // Default sort Admin: ID terbaru
+        $sortOrder = $this->request->getVar('sort_order') ?? 'DESC';
 
-        if ($keyword) {
-            $builder->groupStart()
-                    ->like('term', $keyword)
-                    ->orLike('definition', $keyword)
-                    ->groupEnd();
-        }
+        // 2. Gunakan searchAndPaginate (Sama seperti Leksikon Front-end)
+        // Ini memastikan search fulltext dan sorting bekerja konsisten
+        $dataResult = $this->entriModel->searchAndPaginate($keyword, $sumberId, $sortBy, $sortOrder, 10);
 
-
+        // 3. Statistik Dashboard
         $stats = [
             'total_entri' => $this->entriModel->countAllResults(),
             'total_sumber' => $this->sumberModel->countAllResults(),
@@ -45,14 +45,22 @@ class Admin extends BaseController
 
         $data = [
             'title' => 'Dashboard Admin',
-            'entri' => $builder->paginate(10, 'entri'),
-            'pager' => $builder->pager,
+            'entri' => $dataResult['entri'], // Data hasil query model
+            'pager' => $dataResult['pager'], // Pagination object
             'keyword' => $keyword,
-            'stats' => $stats
+            'stats' => $stats,
+            
+            // Data untuk Dropdown & Filter di View
+            'sumber_list' => $this->sumberModel->orderBy('nama_sumber', 'ASC')->findAll(),
+            'selected_sumber' => $sumberId,
+            'sort_by' => $sortBy,
+            'sort_order' => $sortOrder
         ];
 
         return view('admin/index', $data);
     }
+    
+    // ... (Method CRUD lainnya: create, store, edit, update, delete TETAP SAMA) ...
     
     public function create()
     {
@@ -67,7 +75,7 @@ class Admin extends BaseController
     public function store()
     {
         if (!$this->validate([
-            'term' => 'required|min_length(2)',
+            'term' => 'required|min_length[2]',
             'definition' => 'required',
             'sumber_id' => 'required'
         ])) {
